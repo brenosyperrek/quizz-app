@@ -11,12 +11,66 @@ app_diagnostics.install_diagnostics()
 # --- end diagnostics bootstrap ---
 
 import streamlit as st
-import pandas as pd
 
-st.set_page_config(layout="wide")
+st.set_page_config(page_title="Quizz App", layout="centered")
 
-st.header("Hello world!!!")
-apps = st.slider("Number of apps", max_value=60, value=10)
-chart_data = pd.DataFrame({'y':[2 ** x for x in range(apps)]})
-st.bar_chart(chart_data, height=500, width=min(100+50*apps, 1000), 
-             use_container_width=False, x_label="Apps", y_label="Fun with data")
+QUESTIONS = [
+    {"q": "Qual é a capital do Brasil?", "options": ["São Paulo", "Brasília", "Rio de Janeiro", "Salvador"], "answer": 1},
+    {"q": "Quanto é 7 x 8?", "options": ["54", "56", "58", "64"], "answer": 1},
+    {"q": "Qual linguagem é muito usada com Apache Spark?", "options": ["Python", "COBOL", "Fortran", "Pascal"], "answer": 0},
+    {"q": "Qual é o maior planeta do Sistema Solar?", "options": ["Terra", "Marte", "Júpiter", "Vênus"], "answer": 2},
+    {"q": "Qual formato de tabela é padrão no Databricks?", "options": ["CSV", "Delta", "XML", "TXT"], "answer": 1},
+]
+
+
+def reset():
+    st.session_state.idx = 0
+    st.session_state.score = 0
+    st.session_state.answered = False
+    st.session_state.last_correct = False
+
+
+if "idx" not in st.session_state:
+    reset()
+
+user = st.context.headers.get("X-Forwarded-Preferred-Username")
+st.title("Quizz App")
+st.caption(f"Olá, {user}!" if user else "Olá!")
+
+total = len(QUESTIONS)
+idx = st.session_state.idx
+
+if idx >= total:
+    st.progress(1.0)
+    st.success(f"Fim! Você acertou {st.session_state.score} de {total}.")
+    st.button("Reiniciar", on_click=reset)
+else:
+    item = QUESTIONS[idx]
+    st.progress(idx / total, text=f"Pergunta {idx + 1} de {total}")
+    choice = st.radio(
+        item["q"],
+        range(len(item["options"])),
+        format_func=lambda i: item["options"][i],
+        index=None,
+        key=f"choice_{idx}",
+        disabled=st.session_state.answered,
+    )
+
+    if not st.session_state.answered:
+        if st.button("Responder", disabled=choice is None):
+            st.session_state.answered = True
+            st.session_state.last_correct = choice == item["answer"]
+            if st.session_state.last_correct:
+                st.session_state.score += 1
+            st.rerun()
+    else:
+        if st.session_state.last_correct:
+            st.success("Correto!")
+        else:
+            st.error(f"Errado. Resposta certa: {item['options'][item['answer']]}")
+
+        def next_question():
+            st.session_state.idx += 1
+            st.session_state.answered = False
+
+        st.button("Próxima" if idx + 1 < total else "Ver resultado", on_click=next_question)
