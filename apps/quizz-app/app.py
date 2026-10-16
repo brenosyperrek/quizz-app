@@ -53,6 +53,24 @@ if idx >= total:
             "Erros": [int(not r) for r in results],
         }
     ).set_index("Pergunta")
+    hits = int(chart_data["Acertos"].sum())
+    totals = pd.DataFrame({"Resultado": ["Acertos", "Erros"], "Quantidade": [hits, len(results) - hits]})
+    st.subheader("Acertos x Erros")
+    st.vega_lite_chart(
+        totals,
+        {
+            "mark": {"type": "arc", "innerRadius": 50, "tooltip": True},
+            "encoding": {
+                "theta": {"field": "Quantidade", "type": "quantitative"},
+                "color": {
+                    "field": "Resultado",
+                    "type": "nominal",
+                    "scale": {"domain": ["Acertos", "Erros"], "range": ["#2e7d32", "#c62828"]},
+                },
+            },
+        },
+        use_container_width=True,
+    )
     st.subheader("Resultado por pergunta")
     st.bar_chart(chart_data, color=["#2e7d32", "#c62828"])
     st.button("Reiniciar", on_click=reset)
